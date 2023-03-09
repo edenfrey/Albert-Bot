@@ -14,27 +14,33 @@ class MyClient(discord.Client):
         print(f'Logged on as {self.user}!')
 
     async def on_message(self, message):
-        print(f'Message from {message.author}: {message.content}')
-         # don't respond to ourselves
+         # Don't respond to ourselves
         if message.author == self.user:
             return
-        elif self.user.mentioned_in(message):
-            answer = self.chatGPT(message.content[23:])
+        elif not message.guild or self.user.mentioned_in(message): # Anser DMs without @ the bot or answer in guilds if @ the bot.
+
+            # Get past 10 messages of the chat and create messages list.
+            messages = [message async for message in message.channel.history(limit=10)]
+            context = []
+            for msg in messages:
+                if msg.author == self.user:
+                    context.insert(0,{"role": "assistant", "content": msg.content})
+                else:
+                    context.insert(0,{"role": "user", "content": msg.content})
+
+            # Call API, get answer, provide answer.
+            answer = self.chatGPT(context)
             await message.channel.send(answer)
         else:
             return        
 
-    def chatGPT(self, query):
-        completion = CGPT.Completion.create(
-        engine=CGPT_MODEL,
-        prompt=query,
-        max_tokens=1024,
-        n=1,
-        stop=None,
-        temperature=0.5,
+    def chatGPT(self, context):
+        response = CGPT.ChatCompletion.create(
+          model="gpt-3.5-turbo",
+          messages=context,
+          temperature=1.5
         )
-        response = completion.choices[0].text
-        return response
+        return response.choices[0].message.content
 
 
 intents = discord.Intents.default()
