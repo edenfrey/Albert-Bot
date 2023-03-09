@@ -38,7 +38,8 @@ class MyClient(discord.Client):
         response = CGPT.ChatCompletion.create(
           model="gpt-3.5-turbo",
           messages=context,
-          temperature=1.5
+          temperature=0.8,
+          max_tokens=512,
         )
         return response.choices[0].message.content
 
